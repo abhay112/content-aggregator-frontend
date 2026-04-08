@@ -25,7 +25,30 @@ export const articlesApi = createApi({
             query: () => '/sources',
             providesTags: [{ type: 'Source', id: 'LIST' }],
         }),
+        toggleBookmark: builder.mutation<ApiResponse<Article>, string>({
+            query: (id) => ({
+                url: `/articles/${id}/bookmark`,
+                method: 'POST',
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: 'Article', id },
+                { type: 'Article', id: 'LIST' },
+            ],
+        }),
+        clearBookmarks: builder.mutation<ApiResponse<void>, void>({
+            query: () => ({
+                url: '/articles/bookmarks',
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'Article', id: 'LIST' }],
+        }),
     }),
 });
 
-export const { useGetArticlesQuery, useGetSourcesQuery } = articlesApi;
+export const {
+    useGetArticlesQuery,
+    useGetSourcesQuery,
+    useToggleBookmarkMutation,
+    useClearBookmarksMutation
+} = articlesApi;
+

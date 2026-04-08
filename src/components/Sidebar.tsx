@@ -46,7 +46,7 @@ interface SidebarProps { }
 
 const Sidebar: React.FC<SidebarProps> = () => {
     const dispatch = useAppDispatch();
-    const { source, showSidebar, bookmarks, activeNav } = useAppSelector((state) => state.ui);
+    const { source, showSidebar, activeNav } = useAppSelector((state) => state.ui);
     const { data: sourcesData } = useGetSourcesQuery();
     const sources = sourcesData?.data || [];
 
@@ -84,7 +84,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
                         icon={<Heart size={18} />}
                         label="Bookmarks"
                         active={activeNav === 'bookmarks'}
-                        count={bookmarks.length}
                         onClick={() => handleNavClick('bookmarks')}
                     />
                     <NavItem
@@ -114,18 +113,9 @@ const Sidebar: React.FC<SidebarProps> = () => {
                     ))}
                 </div>
             </div>
-
-            <div className="mt-auto">
-                <div className="p-4 rounded-xl bg-emerald-600 text-white flex flex-col gap-3">
-                    <p className="text-sm font-medium leading-tight">Got a suggestion for a new source?</p>
-                    <Button variant="secondary" size="sm" className="bg-white text-emerald-600 border-none hover:bg-emerald-50">
-                        <PlusCircle size={14} className="mr-2" />
-                        Propose Source
-                    </Button>
-                </div>
-            </div>
         </aside>
     );
 };
 
 export default Sidebar;
+

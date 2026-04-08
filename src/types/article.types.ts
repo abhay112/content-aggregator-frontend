@@ -9,6 +9,7 @@ export interface Article {
     publishedAt: string;
     fetchedAt: string;
     tags: string[];
+    isBookmarked: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -30,5 +31,6 @@ export interface ArticleQueryParams {
     limit?: number;
     source?: string;
     search?: string;
+    saved?: boolean;
     sortBy?: string;
 }

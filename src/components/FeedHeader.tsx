@@ -5,6 +5,7 @@ import Button from './ui/Button';
 interface FeedHeaderProps {
     title: string;
     subtitle: string;
+    sortBy?: string;
     onSortChange?: (value: string) => void;
     onFilterClick?: () => void;
 }
@@ -12,6 +13,7 @@ interface FeedHeaderProps {
 const FeedHeader: React.FC<FeedHeaderProps> = ({
     title,
     subtitle,
+    sortBy,
     onSortChange,
     onFilterClick
 }) => {
@@ -30,6 +32,7 @@ const FeedHeader: React.FC<FeedHeaderProps> = ({
                 <div className="relative inline-block">
                     <select
                         className="appearance-none bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 text-sm py-2 pl-4 pr-10 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none transition-all cursor-pointer shadow-sm hover:border-emerald-500/30 font-medium"
+                        value={sortBy}
                         onChange={(e) => onSortChange?.(e.target.value)}
                     >
                         <option value="newest">Newest First</option>

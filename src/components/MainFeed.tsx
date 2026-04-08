@@ -5,28 +5,35 @@ import ErrorDisplay from './ErrorDisplay';
 import EmptyState from './EmptyState';
 import Pagination from './Pagination';
 
-import { useGetArticlesQuery } from '../services/apiSlice';
+import { useGetArticlesQuery, useToggleBookmarkMutation, useClearBookmarksMutation } from '../services/apiSlice';
 
 import { useAppDispatch, useAppSelector } from '../store';
-import { setPage, toggleBookmark, resetFilters } from '../store/uiSlice';
+import { setPage, resetFilters, setSortBy } from '../store/uiSlice';
 import { useDebounce } from '../hooks';
 
 interface MainFeedProps { }
 
 import FeedHeader from './FeedHeader';
 import { toggleSidebar } from '../store/uiSlice';
+import Button from './ui/Button';
+import { Trash2 } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 const MainFeed: React.FC<MainFeedProps> = () => {
     const dispatch = useAppDispatch();
-    const { source, page, search, bookmarks, activeNav } = useAppSelector((state) => state.ui);
+    const { source, page, search, activeNav, sortBy } = useAppSelector((state) => state.ui);
     const debouncedSearch = useDebounce(search, 500);
+
+    const [toggleBookmarkApi] = useToggleBookmarkMutation();
+    const [clearBookmarksApi] = useClearBookmarksMutation();
 
     const { data, isLoading, isError, error, refetch, isFetching } = useGetArticlesQuery({
         page,
         limit: 12,
         source,
         search: debouncedSearch,
-        sortBy: activeNav === 'latest' ? 'publishedAt' : undefined
+        saved: activeNav === 'bookmarks' ? true : undefined,
+        sortBy: activeNav === 'latest' ? 'publishedAt' : sortBy
     });
 
     // Business Logic: Determine Title and Subtitle
@@ -39,9 +46,10 @@ const MainFeed: React.FC<MainFeedProps> = () => {
             };
         }
         if (activeNav === 'bookmarks') {
+            const count = data?.meta?.total || 0;
             return {
                 title: 'My Bookmarks',
-                subtitle: `You have ${bookmarks.length} saved article${bookmarks.length !== 1 ? 's' : ''}.`
+                subtitle: `You have ${count} saved article${count !== 1 ? 's' : ''}.`
             };
         }
         if (activeNav === 'latest') {
@@ -58,16 +66,18 @@ const MainFeed: React.FC<MainFeedProps> = () => {
 
     const { title, subtitle } = getFeedMetadata();
 
-    // Business Logic: Handle bookmark filtering
-    const rawArticles = data?.data || [];
-    const filteredArticles = activeNav === 'bookmarks'
-        ? rawArticles.filter(article => bookmarks.includes(article.id))
-        : rawArticles;
+    const articles = data?.data || [];
 
     const paginationMeta = {
-        total: activeNav === 'bookmarks' ? filteredArticles.length : (data?.meta?.total || 0),
+        total: data?.meta?.total || 0,
         page,
         limit: 12
+    };
+
+    const handleClearAll = async () => {
+        if (window.confirm('Are you sure you want to remove all bookmarks?')) {
+            await clearBookmarksApi();
+        }
     };
 
     // Error handling message extraction
@@ -75,14 +85,29 @@ const MainFeed: React.FC<MainFeedProps> = () => {
 
     return (
         <main className="flex-1 p-4 lg:p-8 min-w-0">
-            <FeedHeader
-                title={title}
-                subtitle={subtitle}
-                onSortChange={() => dispatch(setPage(1))}
-                onFilterClick={() => dispatch(toggleSidebar())}
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                <FeedHeader
+                    title={title}
+                    subtitle={subtitle}
+                    sortBy={sortBy}
+                    onSortChange={(val) => dispatch(setSortBy(val))}
+                    onFilterClick={() => dispatch(toggleSidebar())}
+                />
 
-            {isLoading || isFetching ? (
+                {activeNav === 'bookmarks' && paginationMeta.total > 0 && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 gap-2 self-start sm:self-center"
+                        onClick={handleClearAll}
+                    >
+                        <Trash2 size={16} />
+                        Clear All
+                    </Button>
+                )}
+            </div>
+
+            {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[...Array(6)].map((_, i) => <ArticleSkeleton key={i} />)}
                 </div>
@@ -94,20 +119,25 @@ const MainFeed: React.FC<MainFeedProps> = () => {
                 />
             ) : (
                 <>
-                    {filteredArticles.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                            {filteredArticles.map((article) => (
-                                <ArticleCard
-                                    key={article.id}
-                                    article={article}
-                                    isBookmarked={bookmarks.includes(article.id)}
-                                    onBookmark={(id) => dispatch(toggleBookmark(id))}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <EmptyState onReset={() => dispatch(resetFilters())} />
-                    )}
+                    <div className={cn(
+                        "relative transition-opacity duration-300",
+                        isFetching ? "opacity-70" : "opacity-100"
+                    )}>
+                        {articles.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                {articles.map((article) => (
+                                    <ArticleCard
+                                        key={article.id}
+                                        article={article}
+                                        isBookmarked={article.isBookmarked}
+                                        onBookmark={(id) => toggleBookmarkApi(id)}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState onReset={() => dispatch(resetFilters())} />
+                        )}
+                    </div>
 
                     {paginationMeta.total > 0 && (
                         <Pagination
