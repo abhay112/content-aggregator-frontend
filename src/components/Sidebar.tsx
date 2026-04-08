@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, TrendingUp, Heart, LayoutGrid, PlusCircle } from 'lucide-react';
+import { X, TrendingUp, Heart, LayoutGrid } from 'lucide-react';
 import Button from './ui/Button';
 import { cn } from '../utils/cn';
 

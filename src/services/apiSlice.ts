@@ -30,7 +30,7 @@ export const articlesApi = createApi({
                 url: `/articles/${id}/bookmark`,
                 method: 'POST',
             }),
-            invalidatesTags: (result, error, id) => [
+            invalidatesTags: (_result, _error, id) => [
                 { type: 'Article', id },
                 { type: 'Article', id: 'LIST' },
             ],
