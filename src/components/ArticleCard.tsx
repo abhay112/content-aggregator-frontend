@@ -58,7 +58,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
                 </div>
 
                 {/* Tags */}
-                {article.tags && article.tags.length > 0 && (
+                {Array.isArray(article.tags) && article.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-4">
                         {article.tags.map(tag => (
                             <span key={tag} className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-md">

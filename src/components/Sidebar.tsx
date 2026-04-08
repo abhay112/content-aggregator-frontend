@@ -38,32 +38,35 @@ export const NavItem: React.FC<NavItemProps> = ({ icon, label, active, count, on
     );
 };
 
-interface SidebarProps {
-    showSidebar: boolean;
-    setShowSidebar: (value: boolean) => void;
-    source: string | undefined;
-    setSource: (value: string | undefined) => void;
-    setPage: (value: number) => void;
-    bookmarksCount: number;
-    sources: any[];
-}
+import { useGetSourcesQuery } from '../services/apiSlice';
+import { useAppDispatch, useAppSelector } from '../store';
+import { setSource, setShowSidebar, toggleSidebar, setActiveNav } from '../store/uiSlice';
 
-const Sidebar: React.FC<SidebarProps> = ({
-    showSidebar,
-    setShowSidebar,
-    source,
-    setSource,
-    setPage,
-    bookmarksCount,
-    sources
-}) => {
+interface SidebarProps { }
+
+const Sidebar: React.FC<SidebarProps> = () => {
+    const dispatch = useAppDispatch();
+    const { source, showSidebar, bookmarks, activeNav } = useAppSelector((state) => state.ui);
+    const { data: sourcesData } = useGetSourcesQuery();
+    const sources = sourcesData?.data || [];
+
+    const handleSourceClick = (slug: string | undefined) => {
+        dispatch(setSource(slug));
+        dispatch(setShowSidebar(false));
+    };
+
+    const handleNavClick = (view: 'trending' | 'bookmarks' | 'latest') => {
+        dispatch(setActiveNav(view));
+        dispatch(setShowSidebar(false));
+    };
+
     return (
         <aside className={cn(
             "fixed lg:sticky top-0 lg:top-16 z-30 h-full lg:h-[calc(100vh-64px)] w-64 bg-white dark:bg-zinc-900 lg:bg-transparent border-r dark:border-zinc-800 lg:border-none px-4 py-8 lg:py-6 transition-transform duration-300 transform lg:translate-x-0 overflow-y-auto",
             showSidebar ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         )}>
             <div className="lg:hidden flex justify-end mb-6">
-                <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)}>
+                <Button variant="ghost" size="icon" onClick={() => dispatch(toggleSidebar())}>
                     <X size={20} />
                 </Button>
             </div>
@@ -71,9 +74,25 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="mb-8">
                 <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Discovery</h4>
                 <div className="space-y-1">
-                    <NavItem icon={<TrendingUp size={18} />} label="Trending" active={!source} onClick={() => setSource(undefined)} />
-                    <NavItem icon={<Heart size={18} />} label="Bookmarks" count={bookmarksCount} />
-                    <NavItem icon={<LayoutGrid size={18} />} label="Latest" />
+                    <NavItem
+                        icon={<TrendingUp size={18} />}
+                        label="Trending"
+                        active={activeNav === 'trending' && !source}
+                        onClick={() => handleNavClick('trending')}
+                    />
+                    <NavItem
+                        icon={<Heart size={18} />}
+                        label="Bookmarks"
+                        active={activeNav === 'bookmarks'}
+                        count={bookmarks.length}
+                        onClick={() => handleNavClick('bookmarks')}
+                    />
+                    <NavItem
+                        icon={<LayoutGrid size={18} />}
+                        label="Latest"
+                        active={activeNav === 'latest'}
+                        onClick={() => handleNavClick('latest')}
+                    />
                 </div>
             </div>
 
@@ -82,15 +101,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-1">
                     <NavItem
                         label="All Sources"
-                        active={!source}
-                        onClick={() => { setSource(undefined); setPage(1); }}
+                        active={activeNav === 'trending' && !source}
+                        onClick={() => handleNavClick('trending')}
                     />
                     {sources?.map((s: any) => (
                         <NavItem
                             key={s.slug}
                             label={s.name}
                             active={source === s.slug}
-                            onClick={() => { setSource(s.slug); setPage(1); }}
+                            onClick={() => handleSourceClick(s.slug)}
                         />
                     ))}
                 </div>

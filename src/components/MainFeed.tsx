@@ -1,81 +1,97 @@
 import React from 'react';
-import { Filter } from 'lucide-react';
 import ArticleCard from './ArticleCard';
 import ArticleSkeleton from './ArticleSkeleton';
 import ErrorDisplay from './ErrorDisplay';
 import EmptyState from './EmptyState';
 import Pagination from './Pagination';
-import Button from './ui/Button';
-import type { Article } from '../types/article.types';
 
-interface MainFeedProps {
-    source: string | undefined;
-    page: number;
-    setPage: (page: number) => void;
-    isLoading: boolean;
-    isFetching: boolean;
-    isError: boolean;
-    refetch: () => void;
-    filteredArticles: Article[];
-    bookmarks: string[];
-    toggleBookmark: (id: string) => void;
-    onResetFilters: () => void;
-    meta: any;
-}
+import { useGetArticlesQuery } from '../services/apiSlice';
 
-const MainFeed: React.FC<MainFeedProps> = ({
-    source,
-    page,
-    setPage,
-    isLoading,
-    isFetching,
-    isError,
-    refetch,
-    filteredArticles,
-    bookmarks,
-    toggleBookmark,
-    onResetFilters,
-    meta,
-}) => {
+import { useAppDispatch, useAppSelector } from '../store';
+import { setPage, toggleBookmark, resetFilters } from '../store/uiSlice';
+import { useDebounce } from '../hooks';
+
+interface MainFeedProps { }
+
+import FeedHeader from './FeedHeader';
+import { toggleSidebar } from '../store/uiSlice';
+
+const MainFeed: React.FC<MainFeedProps> = () => {
+    const dispatch = useAppDispatch();
+    const { source, page, search, bookmarks, activeNav } = useAppSelector((state) => state.ui);
+    const debouncedSearch = useDebounce(search, 500);
+
+    const { data, isLoading, isError, error, refetch, isFetching } = useGetArticlesQuery({
+        page,
+        limit: 12,
+        source,
+        search: debouncedSearch,
+        sortBy: activeNav === 'latest' ? 'publishedAt' : undefined
+    });
+
+    // Business Logic: Determine Title and Subtitle
+    const getFeedMetadata = () => {
+        if (source) {
+            const displayName = source.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            return {
+                title: `Latest from ${displayName}`,
+                subtitle: `Curated content specifically from ${displayName}.`
+            };
+        }
+        if (activeNav === 'bookmarks') {
+            return {
+                title: 'My Bookmarks',
+                subtitle: `You have ${bookmarks.length} saved article${bookmarks.length !== 1 ? 's' : ''}.`
+            };
+        }
+        if (activeNav === 'latest') {
+            return {
+                title: 'Latest Decoded',
+                subtitle: 'The most recent stories from the tech world, sorted by time.'
+            };
+        }
+        return {
+            title: 'Fresh from the Tech Sphere',
+            subtitle: 'Curated articles aggregated from top sources across the web.'
+        };
+    };
+
+    const { title, subtitle } = getFeedMetadata();
+
+    // Business Logic: Handle bookmark filtering
+    const rawArticles = data?.data || [];
+    const filteredArticles = activeNav === 'bookmarks'
+        ? rawArticles.filter(article => bookmarks.includes(article.id))
+        : rawArticles;
+
+    const paginationMeta = {
+        total: activeNav === 'bookmarks' ? filteredArticles.length : (data?.meta?.total || 0),
+        page,
+        limit: 12
+    };
+
+    // Error handling message extraction
+    const errorMessage = (error as any)?.data?.error?.message || (error as any)?.error || undefined;
+
     return (
         <main className="flex-1 p-4 lg:p-8 min-w-0">
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-8 border-b border-zinc-100 dark:border-zinc-800/50">
-                <div>
-                    <h1 className="text-2xl font-black mb-2 tracking-tight text-zinc-900 dark:text-zinc-100">
-                        {source ? `Latest from ${source}` : 'Fresh from the Tech Sphere'}
-                    </h1>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium leading-relaxed">
-                        Curated articles aggregated from top sources across the web.
-                    </p>
-                </div>
+            <FeedHeader
+                title={title}
+                subtitle={subtitle}
+                onSortChange={() => dispatch(setPage(1))}
+                onFilterClick={() => dispatch(toggleSidebar())}
+            />
 
-                <div className="flex items-center gap-3 self-start sm:self-auto">
-                    <div className="relative inline-block">
-                        <select
-                            className="appearance-none bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 text-sm py-2 pl-4 pr-10 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none transition-all cursor-pointer shadow-sm hover:border-emerald-500/30 font-medium"
-                            onChange={() => { setPage(1); }}
-                        >
-                            <option>Newest First</option>
-                            <option>Relative Time</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-400">
-                            <Filter size={14} />
-                        </div>
-                    </div>
-                    <Button variant="outline" size="icon" className="md:hidden rounded-xl border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 group">
-                        <Filter size={18} className="group-hover:scale-110 transition-transform" />
-                    </Button>
-                </div>
-            </div>
-
-            {/* Feed Content */}
             {isLoading || isFetching ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[...Array(6)].map((_, i) => <ArticleSkeleton key={i} />)}
                 </div>
             ) : isError ? (
-                <ErrorDisplay onRetry={() => refetch()} />
+                <ErrorDisplay
+                    onRetry={() => refetch()}
+                    message="Aggregator Error"
+                    description={errorMessage}
+                />
             ) : (
                 <>
                     {filteredArticles.length > 0 ? (
@@ -85,21 +101,20 @@ const MainFeed: React.FC<MainFeedProps> = ({
                                     key={article.id}
                                     article={article}
                                     isBookmarked={bookmarks.includes(article.id)}
-                                    onBookmark={toggleBookmark}
+                                    onBookmark={(id) => dispatch(toggleBookmark(id))}
                                 />
                             ))}
                         </div>
                     ) : (
-                        <EmptyState onReset={onResetFilters} />
+                        <EmptyState onReset={() => dispatch(resetFilters())} />
                     )}
 
-                    {/* Pagination */}
-                    {meta && (
+                    {paginationMeta.total > 0 && (
                         <Pagination
                             page={page}
-                            total={meta.total}
+                            total={paginationMeta.total}
                             limit={12}
-                            onPageChange={setPage}
+                            onPageChange={(page) => dispatch(setPage(page))}
                         />
                     )}
                 </>

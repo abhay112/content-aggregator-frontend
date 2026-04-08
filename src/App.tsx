@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useGetArticlesQuery, useGetSourcesQuery } from './services/apiSlice';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 // Components
 import Header from './components/Header';
@@ -7,105 +7,42 @@ import Sidebar from './components/Sidebar';
 import MainFeed from './components/MainFeed';
 import Footer from './components/Footer';
 
+import { useAppDispatch, useAppSelector } from './store';
+import { setSearch, setSource, setPage } from './store/uiSlice';
+
 const App: React.FC = () => {
-  // UI State
-  const [page, setPage] = useState(1);
-  const [source, setSource] = useState<string | undefined>();
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [darkMode, setDarkMode] = useState(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [bookmarks, setBookmarks] = useState<string[]>(() =>
-    JSON.parse(localStorage.getItem('bookmarks') || '[]')
-  );
+  const dispatch = useAppDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { search, source, page } = useAppSelector((state) => state.ui);
 
-  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1); // Reset to page 1 on search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
+    const urlSearch = searchParams.get('search') || '';
+    const urlSource = searchParams.get('source') || undefined;
+    const urlPageRaw = searchParams.get('page');
+    const urlPage = urlPageRaw ? Math.max(1, parseInt(urlPageRaw, 10) || 1) : 1;
 
-  // Dark Mode Sync
+    if (urlSearch !== search) dispatch(setSearch(urlSearch));
+    if (urlSource !== source) dispatch(setSource(urlSource));
+    if (urlPage !== page) dispatch(setPage(urlPage));
+  }, [searchParams, dispatch]); // Only sync when URL params change
+
+
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (source) params.source = source;
+    params.page = page.toString();
 
-  // Bookmark Sync
-  useEffect(() => {
-    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-  }, [bookmarks]);
-
-  const toggleBookmark = (id: string) => {
-    setBookmarks(prev =>
-      prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]
-    );
-  };
-
-  // Data Fetching
-  const { data, isLoading, isError, refetch, isFetching } = useGetArticlesQuery({
-    page,
-    limit: 12,
-    source,
-    search: debouncedSearch
-  });
-  const { data: sourcesData } = useGetSourcesQuery();
-
-  const articles = data?.data || [];
-  const meta = data?.meta;
-
-  const handleResetFilters = () => {
-    setSearch('');
-    setSource(undefined);
-    setPage(1);
-  };
+    setSearchParams(params, { replace: true });
+  }, [search, source, page, setSearchParams]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-black transition-colors duration-300">
-      <Header
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-        showSidebar={showSidebar}
-        setShowSidebar={setShowSidebar}
-        search={search}
-        setSearch={setSearch}
-        isFetching={isFetching}
-        refetch={refetch}
-      />
+      <Header />
 
       <div className="max-w-[1440px] mx-auto w-full flex-1 flex">
-        <Sidebar
-          showSidebar={showSidebar}
-          setShowSidebar={setShowSidebar}
-          source={source}
-          setSource={setSource}
-          setPage={setPage}
-          bookmarksCount={bookmarks.length}
-          sources={sourcesData?.data || []}
-        />
-
-        <MainFeed
-          source={source}
-          page={page}
-          setPage={setPage}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          isError={isError}
-          refetch={refetch}
-          filteredArticles={articles}
-          bookmarks={bookmarks}
-          toggleBookmark={toggleBookmark}
-          onResetFilters={handleResetFilters}
-          meta={meta}
-        />
+        <Sidebar />
+        <MainFeed />
       </div>
 
       <Footer />
@@ -114,3 +51,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

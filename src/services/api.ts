@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Article, ApiResponse, ArticleQueryParams } from '../types/article.types';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:6001/api/v1',
+    baseURL: import.meta.env.VITE_API_URL,
     timeout: 10000,
 });
 

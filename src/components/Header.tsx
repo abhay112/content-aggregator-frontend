@@ -1,28 +1,18 @@
 import React from 'react';
-import { Menu, Moon, Sun, Search, TrendingUp, RefreshCcw } from 'lucide-react';
+import { Menu, Moon, Sun, Search, TrendingUp } from 'lucide-react';
 import Button from './ui/Button';
 
-interface HeaderProps {
-    darkMode: boolean;
-    setDarkMode: (value: boolean) => void;
-    showSidebar: boolean;
-    setShowSidebar: (value: boolean) => void;
-    search: string;
-    setSearch: (value: string) => void;
-    isFetching: boolean;
-    refetch: () => void;
-}
+import { useAppDispatch, useAppSelector } from '../store';
+import { setSearch, toggleSidebar } from '../store/uiSlice';
+import { useTheme } from '../hooks';
 
-const Header: React.FC<HeaderProps> = ({
-    darkMode,
-    setDarkMode,
-    showSidebar,
-    setShowSidebar,
-    search,
-    setSearch,
-    isFetching,
-    refetch
-}) => {
+interface HeaderProps { }
+
+const Header: React.FC<HeaderProps> = () => {
+    const dispatch = useAppDispatch();
+    const search = useAppSelector((state) => state.ui.search);
+    const { darkMode, toggleDarkMode } = useTheme();
+
     return (
         <header className="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
             <div className="max-w-[1440px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
@@ -31,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({
                         variant="ghost"
                         size="icon"
                         className="lg:hidden"
-                        onClick={() => setShowSidebar(!showSidebar)}
+                        onClick={() => dispatch(toggleSidebar())}
                     >
                         <Menu size={20} />
                     </Button>
@@ -52,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({
                         placeholder="Search stories, authors..."
                         className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100/50 dark:bg-zinc-800/50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400/50 transition-all text-sm"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => dispatch(setSearch(e.target.value))}
                     />
                 </div>
 
@@ -60,19 +50,10 @@ const Header: React.FC<HeaderProps> = ({
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDarkMode(!darkMode)}
+                        onClick={toggleDarkMode}
                         aria-label="Toggle dark mode"
                     >
                         {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="hidden sm:flex items-center gap-2"
-                        onClick={() => refetch()}
-                        disabled={isFetching}
-                    >
-                        <RefreshCcw size={16} className={isFetching ? "animate-spin" : ""} />
-                        Refresh
                     </Button>
                 </div>
             </div>

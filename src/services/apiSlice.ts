@@ -4,7 +4,7 @@ import type { Article, ApiResponse, ArticleQueryParams } from '../types/article.
 export const articlesApi = createApi({
     reducerPath: 'articlesApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:6001/api/v1'
+        baseUrl: import.meta.env.VITE_API_URL
     }),
     tagTypes: ['Article', 'Source'],
     endpoints: (builder) => ({
