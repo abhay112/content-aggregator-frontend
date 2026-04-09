@@ -8,6 +8,7 @@ interface UIState {
     showSidebar: boolean;
     activeNav: 'trending' | 'bookmarks' | 'latest';
     sortBy: string;
+    limit: number;
 }
 
 const initialState: UIState = {
@@ -17,6 +18,7 @@ const initialState: UIState = {
     showSidebar: false,
     activeNav: 'trending',
     sortBy: 'newest',
+    limit: 10,
 };
 
 const uiSlice = createSlice({
@@ -50,12 +52,17 @@ const uiSlice = createSlice({
             state.sortBy = action.payload;
             state.page = 1;
         },
+        setLimit: (state, action: PayloadAction<number>) => {
+            state.limit = action.payload;
+            state.page = 1;
+        },
         resetFilters: (state) => {
             state.search = '';
             state.source = undefined;
             state.page = 1;
             state.activeNav = 'trending';
             state.sortBy = 'newest';
+            state.limit = 10;
         }
     },
 });
@@ -68,6 +75,7 @@ export const {
     toggleSidebar,
     setShowSidebar,
     setSortBy,
+    setLimit,
     resetFilters
 } = uiSlice.actions;
 

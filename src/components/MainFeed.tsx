@@ -8,7 +8,7 @@ import Pagination from './Pagination';
 import { useGetArticlesQuery, useToggleBookmarkMutation, useClearBookmarksMutation } from '../services/apiSlice';
 
 import { useAppDispatch, useAppSelector } from '../store';
-import { setPage, resetFilters, setSortBy } from '../store/uiSlice';
+import { setPage, resetFilters, setSortBy, setLimit } from '../store/uiSlice';
 import { useDebounce } from '../hooks';
 
 interface MainFeedProps { }
@@ -21,7 +21,7 @@ import { cn } from '../utils/cn';
 
 const MainFeed: React.FC<MainFeedProps> = () => {
     const dispatch = useAppDispatch();
-    const { source, page, search, activeNav, sortBy } = useAppSelector((state) => state.ui);
+    const { source, page, search, activeNav, sortBy, limit } = useAppSelector((state) => state.ui);
     const debouncedSearch = useDebounce(search, 500);
 
     const [toggleBookmarkApi] = useToggleBookmarkMutation();
@@ -29,7 +29,7 @@ const MainFeed: React.FC<MainFeedProps> = () => {
 
     const { data, isLoading, isError, error, refetch, isFetching } = useGetArticlesQuery({
         page,
-        limit: 12,
+        limit,
         source,
         search: debouncedSearch,
         saved: activeNav === 'bookmarks' ? true : undefined,
@@ -71,7 +71,7 @@ const MainFeed: React.FC<MainFeedProps> = () => {
     const paginationMeta = {
         total: data?.meta?.total || 0,
         page,
-        limit: 12
+        limit
     };
 
     const handleClearAll = async () => {
@@ -80,7 +80,6 @@ const MainFeed: React.FC<MainFeedProps> = () => {
         }
     };
 
-    // Error handling message extraction
     const errorMessage = (error as any)?.data?.error?.message || (error as any)?.error || undefined;
 
     return (
@@ -143,8 +142,9 @@ const MainFeed: React.FC<MainFeedProps> = () => {
                         <Pagination
                             page={page}
                             total={paginationMeta.total}
-                            limit={12}
+                            limit={limit}
                             onPageChange={(page) => dispatch(setPage(page))}
+                            onLimitChange={(limit) => dispatch(setLimit(limit))}
                         />
                     )}
                 </>
