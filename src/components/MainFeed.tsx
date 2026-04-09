@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ArticleCard from './ArticleCard';
 import ArticleSkeleton from './ArticleSkeleton';
 import ErrorDisplay from './ErrorDisplay';
@@ -16,11 +16,14 @@ interface MainFeedProps { }
 import FeedHeader from './FeedHeader';
 import { toggleSidebar } from '../store/uiSlice';
 import Button from './ui/Button';
+import ConfirmModal from './ui/ConfirmModal';
 import { Trash2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 const MainFeed: React.FC<MainFeedProps> = () => {
     const dispatch = useAppDispatch();
+    const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+    
     const { source, page, search, activeNav, sortBy, limit } = useAppSelector((state) => state.ui);
     const debouncedSearch = useDebounce(search, 500);
 
@@ -75,9 +78,11 @@ const MainFeed: React.FC<MainFeedProps> = () => {
     };
 
     const handleClearAll = async () => {
-        if (window.confirm('Are you sure you want to remove all bookmarks?')) {
-            await clearBookmarksApi();
-        }
+        setIsClearModalOpen(true);
+    };
+
+    const confirmClearAll = async () => {
+        await clearBookmarksApi();
     };
 
     const errorMessage = (error as any)?.data?.error?.message || (error as any)?.error || undefined;
@@ -149,6 +154,16 @@ const MainFeed: React.FC<MainFeedProps> = () => {
                     )}
                 </>
             )}
+
+            <ConfirmModal
+                isOpen={isClearModalOpen}
+                onClose={() => setIsClearModalOpen(false)}
+                onConfirm={confirmClearAll}
+                title="Clear All Bookmarks"
+                description="Are you sure you want to remove all your bookmarked articles? This action cannot be undone."
+                confirmText="Remove All"
+                cancelText="Cancel"
+            />
         </main>
     );
 };
